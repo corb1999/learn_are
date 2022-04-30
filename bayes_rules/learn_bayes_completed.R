@@ -86,5 +86,76 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-#  ------------------------------------
+# 2.3 ------------------------------------
 
+# hand roll the binomial model
+fun_binom_model <- function(arg_y, arg_pie, arg_n) {
+  term1 <- factorial(arg_n) / 
+    (factorial(arg_y) * factorial(arg_n - arg_y))
+  term2 <- arg_pie^arg_y
+  term3 <- (1 - arg_pie)^(arg_n - arg_y)
+  return_me <- term1 * term2 * term3
+  return(return_me)
+}
+fun_binom_model(6, 0.8, 6)
+lapply(c(0:6), fun_binom_model, 
+       arg_n = 6, arg_pie = 0.8)
+lapply(c(0:6), fun_binom_model, 
+       arg_n = 6, arg_pie = 0.5)
+lapply(c(0:6), fun_binom_model, 
+       arg_n = 6, arg_pie = 0.2)
+
+lapply(c(0.2, 0.5, 0.8), fun_binom_model, 
+       arg_n = 6, arg_y = 1)
+
+# doing the chess simulation exercise
+# Define possible win probabilities
+chess <- data.frame(pi = c(0.2, 0.5, 0.8))
+# Define the prior model
+prior <- c(0.10, 0.25, 0.65)
+chess_sim <- sample_n(chess, size = 10000, 
+                      weight = prior, replace = TRUE)
+chess_sim <- chess_sim %>% 
+  mutate(y = rbinom(10000, size = 6, prob = pi))
+chess_sim
+chess_sim %>% 
+  tabyl(pi) %>% 
+  adorn_totals("row")
+ggplot(chess_sim, aes(x = y)) + 
+  stat_count(aes(y = ..prop..)) + 
+  facet_wrap(~ pi)
+
+
+# 2.1 ------------------------------------
+
+data("fake_news")
+dim(fake_news)
+head(fake_news)
+fake_news %>% tabyl(title_has_excl, type) %>% adorn_totals('row')
+
+article <- data.frame(type = c('real', 'fake'))
+prior <- c(0.6, 0.4)
+article_sim <- sample_n(article, size = 10000, 
+                        weight = prior, replace = TRUE)
+
+article_sim <- article_sim %>% 
+  mutate(data_model = case_when(type == "fake" ~ 0.2667,
+                                type == "real" ~ 0.0222))
+
+data <- c("no", "yes")
+
+# Simulate exclamation point usage 
+set.seed(3)
+article_sim <- article_sim %>%
+  group_by(1:n()) %>% 
+  mutate(usage = sample(data, size = 1, 
+                        prob = c(1 - data_model, data_model)))
+
+article_sim %>% 
+  tabyl(usage, type) %>% 
+  adorn_totals(c("col","row"))
+
+ggplot(article_sim, aes(x = type, fill = usage)) + 
+  geom_bar(position = "fill")
+ggplot(article_sim, aes(x = type)) + 
+  geom_bar()
