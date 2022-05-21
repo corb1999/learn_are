@@ -86,6 +86,103 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+# 3 ------------------------------------
+
+plot_beta(45, 55)
+
+aa <- seq(0, 1, length.out = 30)
+dbeta(aa, 1, 1)
+pbeta(aa, 1, 1)
+
+data.frame(x = seq(0, 1, length.out = 30), 
+           y1 = dbeta(aa, 1, 1), 
+           y2 = pbeta(aa, 1, 1), 
+           y3 = dbeta(aa, 5, 5)) %>% 
+  ggplot(aes(x = x)) + 
+  geom_point(aes(y = y1), color = 'blue') + 
+  geom_point(aes(y = y2), color = 'black') + 
+  geom_point(aes(y = y3), color = 'red')
+
+# trying to hand roll a beta model to better understand it
+fun_beta <- function(arg_alpha, arg_beta) {
+  term1 <- gamma((arg_alpha + arg_beta)) /
+    (gamma(arg_alpha) * gamma(arg_beta))
+  fun_interim <- function(a0, a1 = arg_alpha, 
+                          a2 = arg_beta, a3 = term1) {
+    fun_out <- a3 * (a0^(a1 - 1)) * (1 - a0)^(a2 - 1)
+    return(round(fun_out, 5))
+  }
+  pi_val <- seq(0, 1, by = 0.01)
+  binom_output <- map_dbl(pi_val, 
+                          fun_interim)
+  binom_model <- data.frame(pi_val, binom_output)
+  
+  out_beta_mean <- arg_alpha / (arg_alpha + arg_beta)
+  out_beta_mode <- (arg_alpha - 1) / (arg_alpha + arg_beta - 2)
+  out_beta_var <- (arg_alpha * arg_beta) / 
+    ((arg_alpha + arg_beta)^2 * (arg_alpha + arg_beta + 1))
+  
+  lout <- list(beta_mean = out_beta_mean, 
+               beta_mode = out_beta_mode, 
+               beta_var = out_beta_var, 
+               beta_sd = sqrt(out_beta_var), 
+               binom_model = binom_model)
+  return(lout)
+}
+
+fun_beta(5, 5)
+asdf <- fun_beta(45, 55)
+asdf$binom_model %>% 
+  ggplot() + 
+  geom_point(aes(x = pi_val, y = binom_output))
+
+fun_beta(1, 10)
+asdf <- fun_beta(1, 10)
+asdf$binom_model %>% 
+  ggplot() + 
+  geom_point(aes(x = pi_val, y = binom_output))
+
+plot_beta_binomial(alpha = 45, 
+                   beta = 55, 
+                   y = 30, n = 50)
+summarize_beta_binomial(alpha = 45, beta = 55, y = 30, n = 50)
+
+fart <- list(pp = 0.34, 
+             nn = 1000, 
+             pp2 = 0.27, 
+             nn2 = 800)
+plot_beta_binomial(alpha = floor(fart$pp * fart$nn), 
+                   beta = floor(fart$nn * (1 - fart$pp)), 
+                   y = floor(fart$pp2 * fart$nn2), 
+                   n = fart$nn2) + theme(legend.position = 'top')
+
+
+lapply(list(aa = c(1:10)), gamma)
+
+# 3.5 --
+
+michelle_sim <- data.frame(pi = rbeta(50000, 45, 55)) %>% 
+  mutate(y = rbinom(50000, size = 50, prob = pi))
+michelle_sim
+
+ggplot(michelle_sim, aes(x = pi, y = y)) + 
+  geom_point(aes(color = (y == 30)), size = 0.1)
+
+# Keep only the simulated pairs that match our data
+michelle_posterior <- michelle_sim %>% 
+  filter(y == 30) %>% 
+  ggplot(aes(x = pi)) + 
+  geom_density()
+
+michelle_sim %>% 
+  filter(y == 30) %>% 
+  summarize(mean(pi), sd(pi))
+
+summarize_beta_binomial(alpha = 1, beta = 10, y = 26, n = 40)
+
+plot_beta_binomial(alpha = 1, beta = 10, y = 26, n = 40)
+
+
 # 2.3 ------------------------------------
 
 # hand roll the binomial model
