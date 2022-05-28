@@ -86,6 +86,20 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+# 4 ---------------------------------------
+
+fun_beta_binom_manual <- function(arg_alpha, 
+                                  arg_beta) {
+  ggplot() + 
+    stat_function(fun = dbeta, 
+                  args = list(shape1 = arg_alpha, 
+                              shape2 = arg_beta), 
+                  geom = 'area', alpha = 0.25, 
+                  fill = 'yellow')
+}
+fun_beta_binom_manual(5, 5)
+
+
 # 3 ------------------------------------
 
 plot_beta(45, 55)
