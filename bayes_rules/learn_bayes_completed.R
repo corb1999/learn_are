@@ -86,6 +86,53 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+# 5 ----------------------------------------------------
+
+# studying poisson
+rpois(500, 7) %>% hist(breaks = 20)
+
+fun_pois <- function(arg_lambda) {
+  fun_pmf <- function(arg_y) {
+    numerator <- ((arg_lambda^arg_y) * (exp(-arg_lambda)))
+    numerator / gamma(arg_y)
+  }
+  y_values <- seq(1, 12, by = 1)
+  run_pois <- map_dbl(y_values, fun_pmf)
+  fun_output <- data.frame(y_values, 
+                           poisson_pmf = run_pois)
+  return(fun_output)
+}
+fun_pois(2) %>% ggplot() + geom_col(aes(x = y_values, y = poisson_pmf))
+
+# studying gamma
+gamma(seq(1, 5))
+
+fun_gamma <- function(arg_s, arg_r) {
+  fun_interim <- function(arg_lambda) {
+    term1 <- (arg_r^arg_s) / gamma(arg_s)
+    term2 <- arg_lambda^(arg_s - 1) * exp(-arg_r * arg_lambda)
+    term1 * term2
+  }
+  lambda_vals <- seq(1, 20, by = 1)
+  run_gamma <- map_dbl(lambda_vals, fun_interim)
+  fun_output <- data.frame(lambda_vals, 
+                           gamma_model_results = run_gamma)
+  return(fun_output)
+}
+fun_gamma(4, 1) %>% ggplot() + geom_col(aes(x = lambda_vals, 
+                                            y = gamma_model_results))
+
+plot_gamma(4, 1)
+# plucked from the internals of the above function
+x_min <- qgamma(0.0000000000000000000000001, 4, 1)
+x_max <- qgamma(0.99999, 4, 1)
+ggplot(data = data.frame(x = c(x_min, x_max)), aes(x)) + 
+  stat_function(fun = dgamma, n = 101, args = list(shape = 4, 
+                                                   rate = 1))
+
+plot_gamma_poisson(shape = 10, rate = 2, sum_y = 11, n = 4)
+
+
 # 4 ---------------------------------------
 
 fun_beta_binom_manual <- function(arg_alpha, 
