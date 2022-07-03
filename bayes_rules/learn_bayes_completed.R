@@ -86,6 +86,30 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+# 6 ----------------------------------------------------
+
+data.frame(pi_grid = seq(from = 0, 
+                         to = 1, length = 100)) %>% 
+  mutate(prior = dbeta(pi_grid, 2, 2),
+         likelihood = dbinom(9, 10, pi_grid)) %>% 
+  mutate(unnormalized = likelihood * prior,
+         posterior = unnormalized / sum(unnormalized)) %>% 
+  ggplot(aes(x = pi_grid, y = posterior)) + 
+  geom_point() + 
+  geom_segment(aes(x = pi_grid, xend = pi_grid, 
+                   y = 0, yend = posterior))
+
+dbeta(seq(from = 0, 
+          to = 1, length = 100), 5, 5) %>% plot()
+
+dbinom(1, 2, seq(from = 0, 
+                 to = 1, length = 100)) %>% plot()
+
+dgamma(seq(1, 20, length = 100), 
+       10, 2) %>% plot()
+
+dpois(10, seq(1, 20, length = 100)) %>% plot()
+
 # 5 ----------------------------------------------------
 
 # studying poisson

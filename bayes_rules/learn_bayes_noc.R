@@ -24,7 +24,7 @@ library(modelr)
 library(broom.mixed)
 library(forcats)
 
-set.seed(metadatar$seed_set[1])
+# set.seed(metadatar$seed_set[1])
 options(digits = 4, max.print = 99, warnPartialMatchDollar = TRUE, 
         tibble.print_max = 30, scipen = 999, nwarnings = 5, 
         stringsAsFactors = FALSE)
@@ -89,4 +89,7 @@ cash_money <- function(x) {
 # 6 ----------------------------------------
 
 # grid approximation
+
+
+
 
