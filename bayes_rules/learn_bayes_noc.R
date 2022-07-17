@@ -86,9 +86,74 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-# 6 ----------------------------------------
+# 7 ----------------------------------------
 
-# grid approximation
+# mcmc
+
+monty <- data.frame(mu = rnorm(10000, mean = 4, sd = 0.6))
+
+monty %>% ggplot() + 
+  geom_histogram(aes(x = mu), bins = 30, color = 'white')
+
+# metropolis hastings mcmc algorithm manual
+#   corresponds to examples in the text with Y of 6.25 and sd of 0.75
+mh_iteration <- function(uni_half_width, cur_chain_val, 
+                         liklihood_y = 6.25, liklihood_sd = 0.75) {
+  propose_chain_val <- runif(1, 
+                             min = cur_chain_val - uni_half_width, 
+                             max = cur_chain_val + uni_half_width)
+  
+  cur_plausibility <- dnorm(cur_chain_val, 0, 1) * 
+    dnorm(liklihood_y, cur_chain_val, liklihood_sd)
+  pro_plausibility <- dnorm(propose_chain_val, 0, 1) * 
+    dnorm(liklihood_y, propose_chain_val, liklihood_sd)
+  
+  alpha <- min(1, pro_plausibility / cur_plausibility)
+  next_chain_val <- sample(c(cur_chain_val, propose_chain_val), 
+                           size = 1, 
+                           prob = c(1 - alpha, alpha))
+  fn_output <- data.frame(cur_chain_val, 
+                          propose_chain_val, 
+                          alpha, 
+                          next_chain_val)
+  return(fn_output)
+}
+mh_iteration(1, 3)
+
+mh_simulation <- function(n_length, uni_half_width, 
+                          init_chain_val = 3, 
+                          liklihood_y = 6.25, liklihood_sd = 0.75) {
+  sim_chain_val <- init_chain_val
+  mu_sim <- rep(0, n_length)
+  for(i in c(1:n_length)) {
+    simulation <- mh_iteration(uni_half_width = uni_half_width, 
+                               cur_chain_val = sim_chain_val, 
+                               liklihood_y = liklihood_y, 
+                               liklihood_sd = liklihood_sd)
+    mu_sim[i] <- simulation$next_chain_val
+    sim_chain_val <- simulation$next_chain_val
+  }
+  fn_output <- data.frame(chain_step_num = c(1:n_length), 
+                          mu_sim)
+  return(fn_output)
+}
+mh_simulation(3000, uni_half_width = 1) %>% 
+  ggplot(aes(x = chain_step_num, y = mu_sim)) + 
+  geom_line()
+
+mh_simulation(3000, uni_half_width = 1) %>% 
+  ggplot(aes(x = mu_sim)) + 
+  geom_histogram(bins = 30, color = 'white')
+
+# beta binomial example ...
+
+
+
+
+
+
+
+
 
 
 
