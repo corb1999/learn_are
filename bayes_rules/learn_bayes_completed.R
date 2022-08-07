@@ -86,6 +86,128 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+# 7 ----------------------------------------------------
+
+# mcmc
+
+monty <- data.frame(mu = rnorm(10000, mean = 4, sd = 0.6))
+
+monty %>% ggplot() + 
+  geom_histogram(aes(x = mu), bins = 30, color = 'white')
+
+# metropolis hastings mcmc algorithm manual
+#   corresponds to examples in the text with Y of 6.25 and sd of 0.75
+mh_iteration <- function(uni_half_width, cur_chain_val, 
+                         liklihood_y = 6.25, liklihood_sd = 0.75) {
+  propose_chain_val <- runif(1, 
+                             min = cur_chain_val - uni_half_width, 
+                             max = cur_chain_val + uni_half_width)
+  
+  cur_plausibility <- dnorm(cur_chain_val, 0, 1) * 
+    dnorm(liklihood_y, cur_chain_val, liklihood_sd)
+  pro_plausibility <- dnorm(propose_chain_val, 0, 1) * 
+    dnorm(liklihood_y, propose_chain_val, liklihood_sd)
+  
+  alpha <- min(1, pro_plausibility / cur_plausibility)
+  next_chain_val <- sample(c(cur_chain_val, propose_chain_val), 
+                           size = 1, 
+                           prob = c(1 - alpha, alpha))
+  fn_output <- data.frame(cur_chain_val, 
+                          propose_chain_val, 
+                          alpha, 
+                          next_chain_val)
+  return(fn_output)
+}
+mh_iteration(1, 3)
+
+mh_simulation <- function(n_length, uni_half_width, 
+                          init_chain_val = 3, 
+                          liklihood_y = 6.25, liklihood_sd = 0.75) {
+  sim_chain_val <- init_chain_val
+  mu_sim <- rep(0, n_length)
+  for(i in c(1:n_length)) {
+    simulation <- mh_iteration(uni_half_width = uni_half_width, 
+                               cur_chain_val = sim_chain_val, 
+                               liklihood_y = liklihood_y, 
+                               liklihood_sd = liklihood_sd)
+    mu_sim[i] <- simulation$next_chain_val
+    sim_chain_val <- simulation$next_chain_val
+  }
+  fn_output <- data.frame(chain_step_num = c(1:n_length), 
+                          mu_sim)
+  return(fn_output)
+}
+mh_simulation(3000, uni_half_width = 1) %>% 
+  ggplot(aes(x = chain_step_num, y = mu_sim)) + 
+  geom_line()
+
+mh_simulation(3000, uni_half_width = 1) %>% 
+  ggplot(aes(x = mu_sim)) + 
+  geom_histogram(bins = 30, color = 'white')
+
+# beta binomial example ...
+
+# in this example binomial liklihoods are Y = 1, n = 2, 
+#   Beta(2, 3) is the prior pdf
+bb_iteration <- function(arg_beta_a, arg_beta_b, arg_cur_pi_val) {
+  # propose next chain location
+  prop <- rbeta(1, arg_beta_a, arg_beta_b)
+  
+  # calc vals to evaluate plausibility of next location
+  prop_plaus <- dbeta(prop, 2, 3) * dbinom(1, 2, prop)
+  prop_q <- dbeta(prop, arg_beta_a, arg_beta_b)
+  
+  curr_plaus <- dbeta(arg_cur_pi_val, 2, 3) * dbinom(1, 2, arg_cur_pi_val)
+  curr_q <- dbeta(arg_cur_pi_val, arg_beta_a, arg_beta_b)
+  
+  # decide on whether to move to next location
+  algo_alpha <- min(1, 
+                    prop_plaus / curr_plaus * 
+                      curr_q / prop_q)
+  
+  next_iteration <- sample(c(prop, arg_cur_pi_val), 
+                           size = 1, 
+                           prob = c(algo_alpha, 1 - algo_alpha))
+  
+  return(data.frame(arg_cur_pi_val, 
+                    prop, 
+                    algo_alpha, 
+                    next_iteration))
+}
+bb_iteration(1, 1, 0.5)
+rbeta(5000, 3, 4) %>% hist()
+
+bb_tour <- function(arg_n, arg_a, arg_b, chain_start = 0.5) {
+  # initialize sim creating a home for data produced by loop
+  chain_position <- chain_start
+  pi_val <- rep(0, arg_n)
+  
+  # simulate the chain iterations
+  for (i in 1:arg_n) {
+    # sim a single iteration
+    single_sim <- bb_iteration(arg_a, arg_b, chain_position)
+    
+    # record the single sim result
+    pi_val[i] <- single_sim$next_iteration
+    
+    # set new chain value to begin loop again
+    chain_position <- single_sim$next_iteration
+    
+  }
+  
+  return(data.frame(iter_num = c(1:arg_n), 
+                    sim_results = pi_val))
+}
+
+bb_tour(5000, 1, 1) %>% ggplot() + 
+  geom_histogram(aes(x = sim_results, y = ..density..), 
+                 color = 'white', bins = 30) + 
+  stat_function(fun = dbeta, args = list(3, 4), color = "blue")
+
+bb_tour(5000, 1, 1) %>% ggplot() + 
+  geom_line(aes(x = iter_num, y = sim_results))
+
+
 # 6 ----------------------------------------------------
 
 data.frame(pi_grid = seq(from = 0, 
