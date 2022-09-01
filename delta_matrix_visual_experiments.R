@@ -3,6 +3,7 @@
 library(tidyverse)
 library(scales)
 library(patchwork)
+library(hexbin)
 
 # dataset -----
 
@@ -23,7 +24,8 @@ dff <- data.frame(feature_1 = sample(LETTERS, 50000, replace = TRUE,
   mutate(moved_05plus = ifelse(abs(model2_rank - model1_rank) >= 5, 
                                TRUE, FALSE), 
          moved_10plus = ifelse(abs(model2_rank - model1_rank) >= 10, 
-                               TRUE, FALSE))
+                               TRUE, FALSE), 
+         model_delta = model2_rank - model1_rank) |>
   as_tibble()
 
 dim(dff)
@@ -33,27 +35,29 @@ dff |> group_by(rank1_bin_05) |>
   summarise(min(model1_rank), max(model1_rank))
 
 # agg versions of the dataframe
-dff_a <- dff |> 
-  group_by(model1_rank, model2_rank) |>
-  summarise(recs = n(), 
-            revenue = sum(revenue)) |>  
-  mutate(recs_mix = recs / sum(recs), 
-         rev_mix = revenue / sum(revenue))
-
-dff_a2 <- dff |> 
-  group_by(rank1_bin_10, rank2_bin_10) |>
-  summarise(recs = n(), 
-            revenue = sum(revenue), 
-            m05plus = sum(moved_05plus), 
-            m10plus = sum(moved_10plus)) |>  
-  mutate(recs_mix = recs / sum(recs), 
-         rev_mix = revenue / sum(revenue))
+# dff_a <- dff |> 
+#   group_by(model1_rank, model2_rank) |>
+#   summarise(recs = n(), 
+#             revenue = sum(revenue)) |>  
+#   mutate(recs_mix = recs / sum(recs), 
+#          rev_mix = revenue / sum(revenue))
+# 
+# dff_a2 <- dff |> 
+#   group_by(rank1_bin_10, rank2_bin_10) |>
+#   summarise(recs = n(), 
+#             revenue = sum(revenue), 
+#             m05plus = sum(moved_05plus), 
+#             m10plus = sum(moved_10plus)) |>  
+#   mutate(recs_mix = recs / sum(recs), 
+#          rev_mix = revenue / sum(revenue))
 
 dff_a3 <- dff |>
   mutate(gkey = paste0(rank1_bin_05, '::', rank2_bin_05)) |>
   group_by(gkey) |>
   summarise(recs = n(), 
-            revenue = sum(revenue)) |>  
+            revenue = sum(revenue), 
+            m05plus = sum(moved_05plus), 
+            m10plus = sum(moved_10plus)) |>  
   mutate(recs_mix = recs / sum(recs), 
          rev_mix = revenue / sum(revenue)) |>
   mutate(rank1_bin_05 = stringr::str_extract(gkey, '^.*?(?=::)'), 
@@ -68,33 +72,58 @@ dff_a3 <- dff |>
 fun_plt_delta_matrix <- function(arg_df, arg_dfa,  
                                  arg_xaxis, 
                                  arg_yaxis) {
-  p1 <- arg_dfa %>% 
+  aaa <- scales::percent(sum(arg_df$moved_05plus) / nrow(arg_df), 
+                         accuracy = 0.1)
+  bbb <- scales::percent(sum(arg_df$moved_10plus) / nrow(arg_df), 
+                         accuracy = 0.1)
+  aa2 <- scales::percent((1 - (sum(arg_df$moved_05plus) / nrow(arg_df))), 
+                         accuracy = 0.1)
+  # p1 <- arg_dfa %>% 
+  #   rename(xvar = !!arg_xaxis, yvar = !!arg_yaxis) %>% 
+  #   ggplot(aes(x = as.factor(xvar), 
+  #              y = fct_rev(as.factor(yvar)))) + 
+  #   geom_tile(aes(fill = recs), color = 'white') + 
+  #   geom_label(aes(label = scales::percent(recs_mix, accuracy = 0.1)), 
+  #              size = 3) + 
+  #   scale_fill_distiller(palette = 'Spectral') + 
+  #   scale_x_discrete(guide = guide_axis(position = 'top')) + 
+  #   theme_minimal() + 
+  #   theme(legend.position = 'none') + 
+  #   labs(x = '', y = '')
+  p9 <- arg_dfa %>% 
     rename(xvar = !!arg_xaxis, yvar = !!arg_yaxis) %>% 
     ggplot(aes(x = as.factor(xvar), 
                y = fct_rev(as.factor(yvar)))) + 
-    geom_tile(aes(fill = recs), color = 'white') + 
+    geom_tile(aes(fill = m05plus), color = 'white') + 
     geom_label(aes(label = scales::percent(recs_mix, accuracy = 0.1)), 
-               size = 3) + 
-    scale_fill_distiller(palette = 'Spectral') + 
-    scale_x_discrete(guide = guide_axis(position = 'top')) + 
+               size = 2.75) + 
+    scale_fill_distiller(palette = 'Reds', direction = 1) + 
+    scale_x_discrete(guide = guide_axis(position = 'top', 
+                                        title = 'Model1')) + 
     theme_minimal() + 
     theme(legend.position = 'none') + 
-    labs(x = '', y = '')
+    labs(y = 'Model2', 
+         caption = paste0('*Percent of total pols labelled', 
+                          '; Heat shows 5+ dislocation volume'))
   p2 <- arg_df %>% 
     ggplot() + 
-    geom_histogram(aes(x = model1_rank), alpha = 0.33, 
+    geom_histogram(aes(x = model1_rank), alpha = 0.5, 
                    binwidth = 1, 
                    color = 'white', fill = 'blue') + 
     theme_minimal() + 
     labs(y = '')
   p3 <- arg_df %>% 
     ggplot() + 
-    geom_histogram(aes(x = model2_rank), alpha = 0.33, 
+    geom_histogram(aes(x = model2_rank), alpha = 0.5, 
                    binwidth = 1, 
-                   color = 'white', fill = 'red') + 
+                   color = 'white', fill = 'green') + 
     theme_minimal() + 
     labs(y = '')
-  p_out <- p1 | (p2 / p3)
+  p_out <- ((p2 / p3) | p9) + 
+    plot_annotation(subtitle = paste0('recs = ', nrow(arg_df), 
+                                      '; minimal delta = ', aa2, 
+                                      '; 5+ delta = ', aaa, 
+                                      '; 10+ delta = ', bbb))
   return(p_out)
 }
 # fun_plt_delta_matrix(dff_a, 
@@ -103,3 +132,18 @@ fun_plt_delta_matrix <- function(arg_df, arg_dfa,
 #                      arg_xaxis = 'rank1_bin_10', arg_yaxis = 'rank2_bin_10')
 fun_plt_delta_matrix(arg_df = dff, arg_dfa = dff_a3, 
                      arg_xaxis = 'rank1_bin_05', arg_yaxis = 'rank2_bin_05')
+
+
+
+
+# now a scatterplot to try and ID dislocation
+fun_plt_delta_scatter <- function(arg_df) {
+  p1 <- arg_df %>% 
+    ggplot(aes(x = model1_rank, y = model2_rank)) + 
+    # geom_point(alpha = 0.5) + 
+    geom_hex() + 
+    geom_abline(slope = 1, intercept = 0) + 
+    theme_minimal()
+  return(p1)
+}
+fun_plt_delta_scatter(arg_df = dff)
