@@ -3,7 +3,8 @@
 library(tidyverse)
 library(scales)
 library(patchwork)
-library(hexbin)
+# library(hexbin)
+library(ggalluvial)
 
 # dataset -----
 
@@ -141,10 +142,25 @@ fun_plt_delta_matrix(arg_df = dff, arg_dfa = dff_a2,
                      arg_xaxis = 'rank1_bin_10', arg_yaxis = 'rank2_bin_10', 
                      arg_histfill = 'feature_1')
 
+# make an alluvial plot -------------------------------
+
+dff_a2 %>% 
+  ggplot(aes(y = recs, 
+             axis1 = as.factor(rank1_bin_10), 
+             axis2 = as.factor(rank2_bin_10))) + 
+  # ggalluvial::geom_flow(aes(fill = as.factor(rank1_bin_10))) + 
+  ggalluvial::geom_alluvium(aes(fill = as.factor(rank1_bin_10)),
+                            width = 1/10) +
+  ggalluvial::geom_stratum(aes(fill = as.factor(rank1_bin_10)), 
+                           width = 1/10) + 
+  scale_fill_brewer(palette = 'Set1') + 
+  scale_x_discrete(limits = c('Model1 Rank', 'Model2 Rank')) + 
+  theme_minimal() + 
+  theme(legend.position = 'top') + 
+  labs(fill = '')
 
 
-
-# now a scatterplot to try and ID dislocation ::::::::::::::
+# now a scatterplot to try and ID dislocation ------------
 # fun_plt_delta_scatter <- function(arg_df) {
 #   p1 <- arg_df %>% 
 #     ggplot(aes(x = model1_rank, y = model2_rank)) + 
