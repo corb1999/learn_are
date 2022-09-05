@@ -32,6 +32,19 @@ mem_used()
 
 # basic helper functions ************************************
 
+# start the clock timer, used for monitoring runtimes
+clockin <- function() {
+  aa <- Sys.time()
+  clock_timer_start <<- aa
+  return(aa)}
+
+# end the clock timer, used in conjunction with the clockin fun
+clockout <- function(x) {
+  aa <- clock_timer_start
+  bb <- Sys.time()
+  cc <- bb - aa
+  return(cc)}
+
 # function to print object size
 sizer <- function(x) {
   aaa <- format(object.size(x), "MB")
@@ -54,6 +67,7 @@ viewer <- function(x) {
 
 # a function to make a quick data dictionary of a data frame
 data_dictionary <- function(aa) {
+  aa <- data.frame(aa)
   dd <- data.frame(column_order = seq(1, ncol(aa)), 
                    column_name_text = colnames(aa), 
                    column_class = sapply(aa, class, simplify = TRUE), 
@@ -67,7 +81,11 @@ data_dictionary <- function(aa) {
                    row_04 = sapply(aa[4, ], as.character, simplify = TRUE),
                    row_05 = sapply(aa[5, ], as.character, simplify = TRUE),
                    row.names = NULL)
-  return(dd)}
+  ee <- list(dims = data.frame(row_n = nrow(aa), col_n = ncol(aa)), 
+             obj_size = object.size(aa), 
+             c_names = c(colnames(aa)), 
+             dict = dd)
+  return(ee)}
 
 # helps turn a character dollar variable into numeric
 #   requires stringr, uncomment last line to turn NA to zero
@@ -85,6 +103,48 @@ cash_money <- function(x) {
 
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+# 9 ----------------------------------------
+
+asdf <- data_dictionary(bikes)
+asdf$dims
+asdf$obj_size
+asdf$dict |> View()
+
+bikes |>
+  ggplot(aes(x = temp_feel, y = rides)) + 
+  geom_point(alpha = 0.5) + 
+  geom_smooth(method = 'lm', se = FALSE) + 
+  theme_minimal()
+
+# building the model to simulate model of bikeshare
+#   use based on temperature
+clockin()
+bike_model <- rstanarm::stan_glm(data = bikes, 
+                                 formula = rides ~ temp_feel, 
+                                 family = gaussian, 
+                                 prior_intercept = normal(5000, 1000), 
+                                 prior = normal(100, 40), 
+                                 prior_aux = exponential(0.0008), 
+                                 # mcmc specific args 
+                                 chains = 4, 
+                                 iter = 5000 * 2, 
+                                 seed = 9)
+clockout()
+bike_model
+
+# check performance of simulation
+bayesplot::neff_ratio(bike_model)
+bayesplot::rhat(bike_model)
+bayesplot::mcmc_trace(bike_model)
+bayesplot::mcmc_dens_overlay(bike_model)
+
+broom.mixed::tidy(bike_model, effects = c('fixed', 'aux'), 
+                  conf.int = TRUE, conf.level = 0.8)
+
+df_bike_model <- as.data.frame(bike_model)
+df_bike_model
+
 
 # 8 ----------------------------------------
 

@@ -32,6 +32,19 @@ mem_used()
 
 # basic helper functions ************************************
 
+# start the clock timer, used for monitoring runtimes
+clockin <- function() {
+  aa <- Sys.time()
+  clock_timer_start <<- aa
+  return(aa)}
+
+# end the clock timer, used in conjunction with the clockin fun
+clockout <- function(x) {
+  aa <- clock_timer_start
+  bb <- Sys.time()
+  cc <- bb - aa
+  return(cc)}
+
 # function to print object size
 sizer <- function(x) {
   aaa <- format(object.size(x), "MB")
@@ -54,6 +67,7 @@ viewer <- function(x) {
 
 # a function to make a quick data dictionary of a data frame
 data_dictionary <- function(aa) {
+  aa <- data.frame(aa)
   dd <- data.frame(column_order = seq(1, ncol(aa)), 
                    column_name_text = colnames(aa), 
                    column_class = sapply(aa, class, simplify = TRUE), 
@@ -67,7 +81,11 @@ data_dictionary <- function(aa) {
                    row_04 = sapply(aa[4, ], as.character, simplify = TRUE),
                    row_05 = sapply(aa[5, ], as.character, simplify = TRUE),
                    row.names = NULL)
-  return(dd)}
+  ee <- list(dims = data.frame(row_n = nrow(aa), col_n = ncol(aa)), 
+             obj_size = object.size(aa), 
+             c_names = c(colnames(aa)), 
+             dict = dd)
+  return(ee)}
 
 # helps turn a character dollar variable into numeric
 #   requires stringr, uncomment last line to turn NA to zero
@@ -86,8 +104,6 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-# 9 ----------------------------------------
-
-
+# 10 ----------------------------------------
 
 
