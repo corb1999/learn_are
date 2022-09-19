@@ -145,6 +145,8 @@ broom.mixed::tidy(bike_model, effects = c('fixed', 'aux'),
 df_bike_model <- as.data.frame(bike_model)
 df_bike_model
 
+rstanarm::pp_check
+
 
 # 8 ----------------------------------------
 
