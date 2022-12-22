@@ -104,6 +104,103 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+# 11 ----------------------------------------
+
+weather_WU
+
+dfa <- weather_WU |> 
+  select(location, windspeed9am, humidity9am, pressure9am, 
+         temp9am, temp3pm)
+
+dfa |> 
+  ggplot(aes(x = temp9am, y = temp3pm)) + 
+  geom_point(alpha = 0.8) + 
+  geom_smooth(method = 'lm')
+dfa
+
+weather_model_1 <- rstanarm::stan_glm(temp3pm ~ temp9am, 
+                                      data = dfa, 
+                                      family = gaussian, 
+                                      prior_intercept = normal(25, 5), 
+                                      prior = rstanarm::normal(0, 
+                                                               2.5, 
+                                                               autoscale = TRUE), 
+                                      prior_aux = rstanarm::exponential(1, 
+                                                                        autoscale = TRUE), 
+                                      chains = 4, 
+                                      iter = 5000 * 2, 
+                                      seed = 84735
+)
+
+rstanarm::prior_summary(weather_model_1)
+bayesplot::mcmc_trace(weather_model_1, size = 0.1)
+bayesplot::mcmc_dens_overlay(weather_model_1)
+bayesplot::mcmc_acf(weather_model_1)
+bayesplot::neff_ratio(weather_model_1)
+bayesplot::rhat(weather_model_1)
+
+rstanarm::posterior_interval(weather_model_1)
+rstanarm::pp_check(weather_model_1)
+
+dfa |> 
+  ggplot(aes(x = temp9am, y = temp3pm, color = location)) + 
+  geom_point(alpha = 0.8) + 
+  geom_smooth(method = 'lm')
+
+weather_model_2 <- rstanarm::stan_glm(temp3pm ~ temp9am + location, 
+                                      data = dfa, 
+                                      family = gaussian, 
+                                      prior_intercept = normal(25, 5), 
+                                      prior = rstanarm::normal(0, 
+                                                               2.5, 
+                                                               autoscale = TRUE), 
+                                      prior_aux = rstanarm::exponential(1, 
+                                                                        autoscale = TRUE), 
+                                      chains = 4, 
+                                      iter = 5000 * 2, 
+                                      seed = 84735 
+)
+
+rstanarm::posterior_interval(weather_model_2, prob = 0.8, 
+                             pars = c('temp9am', 'locationWollongong'))
+rstanarm::pp_check(weather_model_2)
+
+weather_pred_1 <- rstanarm::posterior_predict(
+  weather_model_2, 
+  new_data = data.frame(temp9am = c(10, 10), 
+                        location = c('Uluru', 'Wollongong')))
+
+weather_model_3 <- rstanarm::stan_glm(temp3pm ~ ., 
+                                      data = dfa, 
+                                      family = gaussian, 
+                                      prior_intercept = normal(25, 5), 
+                                      prior = rstanarm::normal(0, 
+                                                               2.5, 
+                                                               autoscale = TRUE), 
+                                      prior_aux = rstanarm::exponential(1, 
+                                                                        autoscale = TRUE), 
+                                      chains = 4, 
+                                      iter = 5000 * 2, 
+                                      seed = 84735
+)
+
+rstanarm::prior_summary(weather_model_3)
+bayesplot::mcmc_trace(weather_model_3, size = 0.1)
+bayesplot::mcmc_dens_overlay(weather_model_3)
+bayesplot::mcmc_acf(weather_model_3)
+bayesplot::neff_ratio(weather_model_3)
+bayesplot::rhat(weather_model_3)
+
+rstanarm::posterior_interval(weather_model_3)
+rstanarm::pp_check(weather_model_3)   
+
+bayesrules::prediction_summary_cv(model = weather_model_3, 
+                                  data = dfa, 
+                                  k = 10)
+
+
+
+
 # 9 ----------------------------------------
 
 asdf <- data_dictionary(bikes)
