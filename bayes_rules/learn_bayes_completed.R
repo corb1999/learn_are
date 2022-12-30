@@ -104,6 +104,55 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+# 12 ----------------------------------------
+
+equality_index
+
+eq <- equality_index |> 
+  filter(state != 'california')
+
+eq |> 
+  ggplot(aes(x = percent_urban, y = laws, 
+             color = historical)) + 
+  geom_point()
+
+eq_model_1 <- rstanarm::stan_glm(
+  laws ~ percent_urban + historical, 
+  data = eq, 
+  family = poisson, 
+  prior_intercept = rstanarm::normal(2, 0.5), 
+  prior = rstanarm::normal(0, 2.5, autoscale = TRUE), 
+  chains = 4, 
+  iter = 5000 * 2, 
+  seed = 84735, 
+  prior_PD = FALSE
+)
+
+bayesplot::mcmc_trace(eq_model_1)
+bayesplot::mcmc_dens_overlay(eq_model_1)
+bayesplot::pp_check(eq_model_1)
+
+tidybayes::add_epred_draws(newdata = eq, 
+                           object = eq_model_1)
+
+
+bb <- pulse_of_the_nation |> 
+  filter(books < 100)
+
+bb_model_1 <- rstanarm::stan_glm(
+  books ~ age + wise_unwise, 
+  data = bb, 
+  family = neg_binomial_2, 
+  prior_intercept = rstanarm::normal(2, 0.5, autoscale = TRUE), 
+  prior = rstanarm::normal(0, 2.5, autoscale = TRUE), 
+  prior_aux = rstanarm::exponential(1, autoscale = TRUE), 
+  chains = 4, 
+  iter = 5000 * 2, 
+  seed = 84735,  
+)
+
+bayesplot::pp_check(bb_model_1)
+
 # 11 ----------------------------------------
 
 weather_WU
