@@ -104,6 +104,43 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+# 13 ----------------------------------------
+
+aa <- seq(0, 1, by = 0.01)
+bb <- aa / (1 - aa)
+cc <- log(bb)
+oddy <- data.frame(probs = aa, odds = bb, logodds = cc)
+ggplot(data = oddy, aes(x = probs, y = odds)) + 
+  geom_point()
+ggplot(data = oddy, aes(x = odds, y = logodds)) + 
+  geom_point()
+ggplot(data = oddy, aes(x = probs, y = logodds)) + 
+  geom_point()
+
+wee <- weather_perth |> 
+  select(day_of_year, 
+         raintomorrow, 
+         humidity9am, 
+         humidity3pm, 
+         raintoday)
+
+rain_model_1 <- rstanarm::stan_glm(
+  raintomorrow ~ humidity9am, 
+  data = wee, 
+  family = binomial, 
+  prior_intercept = rstanarm::normal(-1.4, 0.7), 
+  prior = rstanarm::normal(0.7, 0.035), 
+  chains = 4, 
+  iter = 5000 * 2, 
+  seed = 84735
+)
+
+rain_model_1
+bayesplot::pp_check(rain_model_1)
+bayesrules::classification_summary(rain_model_1, 
+                                   data = wee, 
+                                   cutoff = 0.5)
+
 # 12 ----------------------------------------
 
 equality_index
