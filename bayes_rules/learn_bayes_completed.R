@@ -104,6 +104,33 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+# 14 ----------------------------------------
+
+penguins_bayes |> 
+  ggplot(aes(x = flipper_length_mm, 
+             y = bill_length_mm, 
+             color = species)) + 
+  geom_point()
+
+bay_model_1 <- e1071::naiveBayes(
+  species ~ bill_length_mm + flipper_length_mm, 
+  data = penguins_bayes
+)
+
+predict(bay_model_1, 
+        newdata = data.frame(bill_length_mm = 50, 
+                             flipper_length_mm = 195), 
+        type = 'raw')
+
+cv_bay_mod_1 <- bayesrules::naive_classification_summary_cv(
+  model = bay_model_1, 
+  data = penguins_bayes, 
+  y = 'species', 
+  k = 10
+)
+
+cv_bay_mod_1
+
 # 13 ----------------------------------------
 
 aa <- seq(0, 1, by = 0.01)
