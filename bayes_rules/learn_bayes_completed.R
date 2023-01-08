@@ -104,6 +104,80 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+# 16 ----------------------------------------
+
+spot <- spotify |> 
+  select(artist, title, popularity) |> 
+  mutate(artist = forcats::fct_reorder(artist, 
+                                       popularity, 
+                                       .fun = 'mean'))
+
+unique(spot$artist)
+
+spot |> 
+  # filter(artist == 'Beyoncé') |> 
+  filter(artist == 'Frank Ocean') |> 
+  ggplot(aes(x = popularity)) + 
+  geom_histogram(bins = 10, color = 'white')
+
+spot_artists <- spotify |> 
+  group_by(artist) |> 
+  summarise(song_count = n(), 
+            mean_popularity = mean(popularity)) |> 
+  arrange(desc(mean_popularity))
+
+spot_artists
+
+ggplot(data = spot, aes(x = popularity)) + 
+  geom_histogram(bins = 30, color = 'white')
+
+spot_artists |> 
+  ggplot(aes(x = mean_popularity, 
+             y = song_count)) + 
+  geom_point()
+
+
+spot_model_1 <- rstanarm::stan_glmer(
+  popularity ~ (1 | artist), 
+  data = spot, 
+  family = gaussian, 
+  prior_intercept = rstanarm::normal(50, 2.5, autoscale = TRUE), 
+  prior_aux = rstanarm::exponential(1, autoscale = TRUE), 
+  prior_covariance = rstanarm::decov(reg = 1, 
+                                     conc = 1, 
+                                     shape = 1, 
+                                     scale = 1), 
+  chains = 4, 
+  iter = 5000 * 2, 
+  seed = 84735
+)
+
+rstanarm::prior_summary(spot_model_1)
+bayesplot::pp_check(spot_model_1)
+
+spot_model_1_df <- as.data.frame(spot_model_1)
+spot_model_1_df
+dim(spot_model_1_df)
+
+spot_preds_1 <- rstanarm::posterior_predict(
+  spot_model_1, 
+  newdata = data.frame(artist = c('Frank Ocean', 
+                                  'Beyonce', 
+                                  'Alok', 
+                                  'Camilo', 
+                                  'Rando New Artist'))
+)
+
+bayesplot::mcmc_areas(spot_preds_1, 
+                      prob = 0.8) + 
+  ggplot2::scale_y_discrete(labels = c('Frank Ocean', 
+                                       'Beyonce', 
+                                       'Alok', 
+                                       'Camilo', 
+                                       'Rando New Artist')) + 
+  lims(x = c(0, 100))
+
+
 # 14 ----------------------------------------
 
 penguins_bayes |> 
