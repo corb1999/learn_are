@@ -104,6 +104,52 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+# 17 ----------------------------------------
+
+# cannot train model if data has missing vals
+df_running <- cherry_blossom_sample |> 
+  select(runner, age, net) |> 
+  na.omit()
+
+runner_model_1 <- rstanarm::stan_glmer(
+  net ~ age + (1 | runner), 
+  data = df_running, 
+  family = gaussian, 
+  prior_intercept = rstanarm::normal(100, 10), 
+  prior = normal(2.5, 1), 
+  prior_aux = rstanarm::exponential(1, autoscale = TRUE), 
+  prior_covariance = rstanarm::decov(reg = 1, 
+                                     conc = 1, 
+                                     shape = 1, 
+                                     scale = 1), 
+  chains = 4, 
+  iter = 5000 * 2, 
+  seed = 84735
+)
+
+bayesplot::pp_check(runner_model_1)
+
+# warning, extremely slow chunk, took 40 mins to run
+clockin()
+runner_model_2 <- rstanarm::stan_glmer(
+  net ~ age + (age | runner), 
+  data = df_running, 
+  family = gaussian, 
+  prior_intercept = rstanarm::normal(100, 10), 
+  prior = normal(2.5, 1), 
+  prior_aux = rstanarm::exponential(1, autoscale = TRUE), 
+  prior_covariance = rstanarm::decov(reg = 1, 
+                                     conc = 1, 
+                                     shape = 1, 
+                                     scale = 1), 
+  chains = 4, 
+  iter = 5000 * 2, 
+  seed = 84735, 
+  adapt_delta = 0.99
+)
+clockout()
+
+
 # 16 ----------------------------------------
 
 spot <- spotify |> 
