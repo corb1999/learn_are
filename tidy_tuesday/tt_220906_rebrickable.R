@@ -38,10 +38,11 @@ inventory_sets <- inventory_sets |>
   group_by(set_num) |> 
   summarise(quantity_total = sum(quantity))
 
-dfa <- tidylog::left_join(sets, inventory_sets, by = "set_num")
+df1 <- tidylog::left_join(sets, inventory_sets, by = "set_num")
 
-dfa <- dfa |> 
+dfa <- df1 |> 
   select(-img_url) |> 
+  mutate(year_decade = floor(year / 10) * 10) |> 
   mutate(quantity_total = ifelse(is.na(quantity_total), 
                                  0, 
                                  quantity_total), 
@@ -50,9 +51,21 @@ dfa <- dfa |>
                                 FALSE), 
          parts_zero = ifelse(num_parts == 0, 
                              TRUE, 
-                             FALSE))
+                             FALSE)) |> 
+  mutate(random_bag_ind = stringr::str_detect(name, 
+                                              'Random Bag'), 
+         guidebook_ind = stringr::str_detect(set_num, 
+                                             '^FLL')) |> 
+  mutate(parts500_ind = ifelse(num_parts >= 500, 
+                               TRUE, 
+                               FALSE), 
+         parts1000_ind = ifelse(num_parts >= 1000, 
+                                TRUE, 
+                                FALSE))
 
-# dfa |> filter(parts_zero == TRUE, quantity_zero == FALSE) |> View()
+dfa |> filter(parts_zero == TRUE, quantity_zero == FALSE) |> viewer()
+
+dfa |> filter(parts1000_ind == TRUE) |> View()
 
 ls()
 gc()
@@ -72,14 +85,25 @@ dfa |>
   geom_col()
 
 dfa |> 
-  filter(quantity_total > 0, 
+  filter(quantity_total >= 0, 
          parts_zero == FALSE) |> 
-  ggplot(aes(x = as.factor(year), 
-             y = quantity_total, 
-             fill = as.factor(year))) + 
-  geom_col() + 
+  ggplot(aes(x = as.factor(year_decade), 
+             # y = quantity_total, 
+             fill = as.factor(year_decade))) + 
+  # geom_col() + 
+  geom_bar() + 
   theme(legend.position = 'none', 
         axis.text.x = element_text(angle = 90))
 
+dfa |> 
+  filter(parts_zero == FALSE) |> 
+  mutate(num_parts_capped = ifelse(num_parts > 1000, 
+                                   1000, 
+                                   num_parts)) |> 
+  ggplot(aes(x = num_parts_capped)) + 
+  geom_histogram(bins = 30, 
+                 color = 'white', 
+                 fill = 'blue', 
+                 alpha = 0.5)
 
 # ^ -----
