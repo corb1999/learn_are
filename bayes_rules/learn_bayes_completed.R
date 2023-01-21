@@ -104,6 +104,58 @@ cash_money <- function(x) {
 # ^ ====================================
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+# 18 ----------------------------------------
+
+df_climb <- climbers_sub |> 
+  select(expedition_id, 
+         member_id, 
+         success, 
+         year, 
+         season, 
+         age, 
+         expedition_role, 
+         oxygen_used)
+
+viewer(df_climb)
+table(df_climb$success)
+
+df_climb |> 
+  group_by(expedition_id) |> 
+  summarise(success_rate = mean(success, na.rm = TRUE)) |> 
+  ggplot(aes(x = success_rate)) + 
+  geom_histogram(bins = 30, 
+                 color = 'white')
+
+df_climb |> 
+  group_by(age, oxygen_used) |> 
+  summarise(success_rate = mean(success, na.rm = TRUE)) |> 
+  ggplot(aes(x = age, 
+             y = success_rate, 
+             color = oxygen_used)) + 
+  geom_point(alpha = 0.75)
+
+# lengthy runtime here
+climb_model_1 <- rstanarm::stan_glmer(
+  success ~ age + oxygen_used + (1 | expedition_id), 
+  data = df_climb, 
+  family = binomial, 
+  prior_intercept = rstanarm::normal(0, 
+                                     2.5, 
+                                     autoscale = TRUE), 
+  prior = normal(0, 
+                 2.5, 
+                 autoscale = TRUE), 
+  prior_covariance = rstanarm::decov(reg = 1, 
+                                     conc = 1, 
+                                     shape = 1, 
+                                     scale = 1), 
+  chains = 4, 
+  iter = 5000 * 2, 
+  seed = 84735
+)
+
+bayesplot::pp_check(climb_model_1)
+
 # 17 ----------------------------------------
 
 # cannot train model if data has missing vals
