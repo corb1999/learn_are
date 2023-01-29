@@ -40,11 +40,25 @@ ggplot(data = nc) +
           color = 'black') + 
   theme_minimal()
 
+# wrapper functions are the way to use colors in leaflet
+helper_leaf_color <- colorNumeric(palette = 'YlOrRd', 
+                                  domain = NULL)
+  
 leaflet::leaflet(data = nc) |> 
   addTiles() |> 
-  addPolygons(fillOpacity = 1, 
+  addPolygons(fillOpacity = 0.7, 
               weight = 1, 
               highlightOptions = highlightOptions(color = "white", 
-                                                  weight = 2,
-                                                  bringToFront = TRUE), 
-              fillColor = ~colorNumeric('viridis', AREA))
+                                                  weight = 5,
+                                                  bringToFront = TRUE, 
+                                                  opacity = 1), 
+              fillColor = ~helper_leaf_color(AREA), 
+              label = nc$NAME) |> 
+  addLegend(position = 'bottomleft', 
+            title = 'Country Area', 
+            pal = helper_leaf_color, 
+            values = ~AREA, 
+            opacity = 1) |> 
+  addMeasure()
+
+
